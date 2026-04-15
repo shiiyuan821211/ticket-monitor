@@ -4,12 +4,19 @@ import json
 import datetime
 import requests
 
-EVENT_URL = "https://www.opentix.life/event/2030899364712869889"
+# ========== 在這裡新增或刪除要監控的活動 URL ==========
+EVENT_URLS = [
+    "https://www.opentix.life/event/2030899364712869889",
+    "https://www.opentix.life/event/1991412650162671616",
+    # "https://www.opentix.life/event/再一個活動ID",
+]
+# ====================================================
+
 TELEGRAM_BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
 TELEGRAM_CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
 
 
-def check_ticket_availability():
+def check_ticket_availability(url):
     headers = {
         "User-Agent": (
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -17,7 +24,7 @@ def check_ticket_availability():
             "Chrome/124.0.0.0 Safari/537.36"
         )
     }
-    response = requests.get(EVENT_URL, headers=headers, timeout=15)
+    response = requests.get(url, headers=headers, timeout=15)
     response.raise_for_status()
 
     matches = re.findall(
@@ -57,30 +64,47 @@ def send_telegram(message):
 
 def main():
     now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=8)))
-    availability, event_name = check_ticket_availability()
-
-    print(f"活動：{event_name}")
-    print(f"票務狀態：{availability}")
     print(f"台灣時間：{now.strftime('%m/%d %H:%M')}")
+    print(f"監控活動數：{len(EVENT_URLS)}")
+    print("-" * 40)
 
-    if availability and "SoldOut" not in availability:
-        message = (
-            "🎫 <b>票源釋出！</b>\n\n"
-            f"活動：{event_name}\n"
-            f"狀態：{availability}\n\n"
-            f"<a href=\"{EVENT_URL}\">立即購票</a>"
-        )
-        send_telegram(message)
-        print("已發送 Telegram 通知！")
+    available_events = []
+    all_results = []
+
+    for event_url in EVENT_URLS:
+        try:
+            availability, event_name = check_ticket_availability(event_url)
+            all_results.append((event_name, availability, event_url))
+            print(f"活動：{event_name}")
+            print(f"票務狀態：{availability}")
+
+            if availability and "SoldOut" not in availability:
+                available_events.append((event_name, availability, event_url))
+        except Exception as e:
+            print(f"檢查失敗：{event_url} - {e}")
+
+        print("-" * 40)
+
+    # 有票 → 立即通知
+    if available_events:
+        for name, status, url in available_events:
+            message = (
+                "🎫 <b>票源釋出！</b>\n\n"
+                f"活動：{name}\n"
+                f"狀態：{status}\n\n"
+                f"<a href=\"{url}\">立即購票</a>"
+            )
+            send_telegram(message)
+            print(f"已發送通知：{name}")
+
+    # 整點心跳
     elif now.minute < 15:
-        # 每小時整點發送心跳訊息（放寬到 15 分鐘內，因為 GitHub Actions 有延遲）
-        message = (
-            f"📡 監控中（{now.strftime('%m/%d %H:%M')}）\n\n"
-            f"活動：{event_name}\n"
-            f"狀態：仍為完售\n\n"
-            "系統正常運作中，有票會立即通知你。"
-        )
-        send_telegram(message)
+        lines = [f"📡 監控中（{now.strftime('%m/%d %H:%M')}）\n"]
+        for name, availability, url in all_results:
+            status = "完售" if availability and "SoldOut" in availability else (availability or "未知")
+            lines.append(f"• {name}：{status}")
+        lines.append("\n系統正常運作中，有票會立即通知你。")
+        send_telegram("\n".join(lines))
         print("已發送心跳通知")
     else:
         print("目前仍為完售，持續監控中...")
