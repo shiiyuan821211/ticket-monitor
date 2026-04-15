@@ -1,6 +1,7 @@
 import os
 import re
 import json
+import datetime
 import requests
 
 EVENT_URL = "https://www.opentix.life/event/2030899364712869889"
@@ -55,10 +56,12 @@ def send_telegram(message):
 
 
 def main():
+    now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=8)))
     availability, event_name = check_ticket_availability()
 
     print(f"活動：{event_name}")
     print(f"票務狀態：{availability}")
+    print(f"台灣時間：{now.strftime('%m/%d %H:%M')}")
 
     if availability and "SoldOut" not in availability:
         message = (
@@ -69,6 +72,16 @@ def main():
         )
         send_telegram(message)
         print("已發送 Telegram 通知！")
+    elif now.minute < 5:
+        # 每小時整點發送心跳訊息
+        message = (
+            f"📡 監控中（{now.strftime('%m/%d %H:%M')}）\n\n"
+            f"活動：{event_name}\n"
+            f"狀態：仍為完售\n\n"
+            "系統正常運作中，有票會立即通知你。"
+        )
+        send_telegram(message)
+        print("已發送心跳通知")
     else:
         print("目前仍為完售，持續監控中...")
 
