@@ -72,8 +72,8 @@ def main():
         )
         send_telegram(message)
         print("已發送 Telegram 通知！")
-    elif now.minute < 5:
-        # 每小時整點發送心跳訊息
+    elif now.minute < 15:
+        # 每小時整點發送心跳訊息（放寬到 15 分鐘內，因為 GitHub Actions 有延遲）
         message = (
             f"📡 監控中（{now.strftime('%m/%d %H:%M')}）\n\n"
             f"活動：{event_name}\n"
