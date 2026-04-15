@@ -7,7 +7,7 @@ import requests
 # ========== 在這裡新增或刪除要監控的活動 URL ==========
 EVENT_URLS = [
     "https://www.opentix.life/event/2030899364712869889",
-    "https://www.opentix.life/event/1991412650162671616",
+    #"https://www.opentix.life/event/1991412650162671616",
     # "https://www.opentix.life/event/再一個活動ID",
 ]
 # ====================================================
@@ -89,7 +89,7 @@ def main():
     if available_events:
         for name, status, url in available_events:
             message = (
-                "🎫 <b>票源釋出！</b>\n\n"
+                "🎫 <b>有票快搶！</b>\n\n"
                 f"活動：{name}\n"
                 f"狀態：{status}\n\n"
                 f"<a href=\"{url}\">立即購票</a>"
