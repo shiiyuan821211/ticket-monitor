@@ -97,8 +97,8 @@ def main():
             send_telegram(message)
             print(f"已發送通知：{name}")
 
-    # 整點心跳
-    elif now.minute < 15:
+    # 每次執行都發心跳通知
+    else:
         lines = [f"📡 監控中（{now.strftime('%m/%d %H:%M')}）\n"]
         for name, availability, url in all_results:
             status = "完售" if availability and "SoldOut" in availability else (availability or "未知")
